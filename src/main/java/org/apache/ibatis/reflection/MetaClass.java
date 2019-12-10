@@ -27,6 +27,7 @@ import org.apache.ibatis.reflection.invoker.MethodInvoker;
 import org.apache.ibatis.reflection.property.PropertyTokenizer;
 
 /**
+ * 元信息类MetaClass的构造方法为私有类型，所以不能直接创建，必须使用其提供的forClass方法进行创建
  * @author Clinton Begin
  */
 public class MetaClass {
@@ -36,10 +37,12 @@ public class MetaClass {
 
   private MetaClass(Class<?> type, ReflectorFactory reflectorFactory) {
     this.reflectorFactory = reflectorFactory;
+    // 根据类型创建 Reflector
     this.reflector = reflectorFactory.findForClass(type);
   }
 
   public static MetaClass forClass(Class<?> type, ReflectorFactory reflectorFactory) {
+    // 调用构造方法
     return new MetaClass(type, reflectorFactory);
   }
 
@@ -132,10 +135,14 @@ public class MetaClass {
   }
 
   public boolean hasSetter(String name) {
+    // 属性分词器，用于解析属性名
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
+      // 调用 reflector 的 hasSetter 方法
       if (reflector.hasSetter(prop.getName())) {
+        // 为属性创建创建 MetaClass
         MetaClass metaProp = metaClassForProperty(prop.getName());
+        // 再次调用 hasSetter
         return metaProp.hasSetter(prop.getChildren());
       } else {
         return false;

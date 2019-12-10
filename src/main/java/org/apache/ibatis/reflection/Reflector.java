@@ -39,32 +39,45 @@ import org.apache.ibatis.reflection.invoker.SetFieldInvoker;
 import org.apache.ibatis.reflection.property.PropertyNamer;
 
 /**
- * This class represents a cached set of class definition information that
- * allows for easy mapping between property names and getter/setter methods.
+ * Reflector 这个类的用途主要是是通过反射获取目标类的 getter 方法及其返回值类型，setter 方法及其参数值类型等元信息。
  *
  * @author Clinton Begin
  */
 public class Reflector {
 
   private final Class<?> type;
+  //可读属性名称数组，用于保存 getter 方法对应的属性名称
   private final String[] readablePropertyNames;
+  //可写属性名称数组，用于保存 setter 方法对应的属性名称
   private final String[] writablePropertyNames;
+  //于保存属性名称到 Invoke 的映射。setter 方法会被封装到 MethodInvoker 对象中，Invoke 实现类比较简单，大家自行分析
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  //用于保存属性名称到 Invoke 的映射。同上，getter 方法也会被封装到 MethodInvoker 对象中
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  //用于保存 setter 对应的属性名与参数类型的映射
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  //用于保存 getter 对应的属性名与返回值类型的映射
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  //用于保存大写属性名与属性名之间的映射，比如 <NAME, name>
   private Constructor<?> defaultConstructor;
 
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    // 解析目标类的默认构造方法，并赋值给 defaultConstructor 变量
     addDefaultConstructor(clazz);
+    // 解析 getter 方法，并将解析结果放入 getMethods 中
     addGetMethods(clazz);
+    // 解析 setter 方法，并将解析结果放入 setMethods 中
     addSetMethods(clazz);
+    // 解析属性字段，并将解析结果添加到 setMethods 或 getMethods 中
     addFields(clazz);
+    // 从 getMethods 映射中获取可读属性名数组
     readablePropertyNames = getMethods.keySet().toArray(new String[getMethods.keySet().size()]);
+    // 从 setMethods 映射中获取可写属性名数组
     writablePropertyNames = setMethods.keySet().toArray(new String[setMethods.keySet().size()]);
+    // 将所有属性名的大写形式作为键，属性名作为值，存入到 caseInsensitivePropertyMap 中
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
@@ -84,15 +97,25 @@ public class Reflector {
 
   private void addGetMethods(Class<?> cls) {
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
+    // 获取当前类，接口，以及父类中的方法。
     Method[] methods = getClassMethods(cls);
     for (Method method : methods) {
       if (method.getParameterTypes().length > 0) {
         continue;
       }
       String name = method.getName();
+      // 过滤出以 get 或 is 开头的方法
       if ((name.startsWith("get") && name.length() > 3)
           || (name.startsWith("is") && name.length() > 2)) {
         name = PropertyNamer.methodToProperty(name);
+        /*
+         * 将冲突的方法添加到 conflictingGetters 中。考虑这样一种情况：
+         *
+         * getTitle 和 isTitle 两个方法经过 methodToProperty 处理，
+         * 均得到 name = title，这会导致冲突。
+         *
+         * 对于冲突的方法，这里先统一起存起来，后续再解决冲突
+         */
         addMethodConflict(conflictingGetters, name, method);
       }
     }

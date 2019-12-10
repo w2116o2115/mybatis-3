@@ -90,10 +90,15 @@ public class ResultMap {
       resultMap.propertyResultMappings = new ArrayList<>();
       final List<String> constructorArgNames = new ArrayList<>();
       for (ResultMapping resultMapping : resultMap.resultMappings) {
+        /*
+         * 检测 <association> 或 <collection> 节点
+         * 是否包含 select 和 resultMap 属性
+         */
         resultMap.hasNestedQueries = resultMap.hasNestedQueries || resultMapping.getNestedQueryId() != null;
         resultMap.hasNestedResultMaps = resultMap.hasNestedResultMaps || (resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null);
         final String column = resultMapping.getColumn();
         if (column != null) {
+          // 将 colum 转换成大写，并添加到 mappedColumns 集合中
           resultMap.mappedColumns.add(column.toUpperCase(Locale.ENGLISH));
         } else if (resultMapping.isCompositeResult()) {
           for (ResultMapping compositeResultMapping : resultMapping.getComposites()) {
@@ -103,10 +108,12 @@ public class ResultMap {
             }
           }
         }
+        // 添加属性 property 到 mappedProperties 集合中
         final String property = resultMapping.getProperty();
         if (property != null) {
           resultMap.mappedProperties.add(property);
         }
+        // 检测当前 resultMapping 是否包含 CONSTRUCTOR 标志
         if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
           resultMap.constructorResultMappings.add(resultMapping);
           if (resultMapping.getProperty() != null) {
