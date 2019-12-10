@@ -55,6 +55,8 @@ import org.apache.ibatis.logging.LogFactory;
  * </pre>
  *
  * @author Tim Fennell
+ *
+ * 解析器工具类，用于获得指定目录符合条件的类们
  */
 public class ResolverUtil<T> {
   /*
